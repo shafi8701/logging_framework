@@ -1,23 +1,27 @@
 import uuid
 import time
 import traceback
+
+#These two files must be imported to each file where this needs to be used in downstream... files...
 from logging_framework import get_request_logger
 from logging_framework.log_context import LogContext, set_context, add_to_context
 
 def run_test():
+    
+    #This is unique for each user request...
+    #Request ID must be passed to downstream flows...
     request_id = str(uuid.uuid4())
-    print(f"Run ID: {request_id}")
 
+    #Creating the context object so that info can be appended as needed in the flow... 
     ctx = LogContext(request_id)
     set_context(request_id, ctx)
 
+    #Pass logger object to downstream flows...
     logger = get_request_logger(request_id, ctx)
 
     # Add context
     add_to_context(request_id, "query", "Test Query")
     add_to_context(request_id, "query_length", 1)
-
-    logger.info("Context initialized")
 
     try:
         for i in range(10):
@@ -45,7 +49,6 @@ def run_test():
                 **summary_data
             }
         )
-        print("Summary logged")
 
 if __name__ == "__main__":
     run_test()
