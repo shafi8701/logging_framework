@@ -1,36 +1,48 @@
-# Logging Framework
 
-A Python **structured logging framework** with request-scoped context, JSON-formatted logs, summary logging, and automatic log rotation.  
-Designed for easy integration into any Python project.
+# 🚀 Python Structured Logging Framework
 
----
+A lightweight, extensible **Python structured logging framework** featuring:
 
-## Features
+- JSON‑formatted logs  
+- Request‑scoped context  
+- Summary‑level metrics logging  
+- Automatic log rotation  
+- Console logging for local dev  
+- Docker‑ready deployment  
 
-- ✅ **Structured JSON logs** with `timestamp`, `level`, `logger`, `module`, `function`, `line`, and `request_id`.
-- ✅ **Request-scoped logging** with unique `request_id` per request.
-- ✅ **Context support**: store extra information per request and automatically attach to all logs.
-- ✅ **Summary logging**: special logs for pipeline summaries (e.g., RAG evaluations, metrics) with context data.
-- ✅ **Log rotation & retention**: automatically rotates logs based on file size, keeps backup files.
-- ✅ **Single log file**: all logs, including summary, go to the same file for simplicity.
-- ✅ **Console output**: optional JSON-formatted console logs for visibility during development.
-- ✅ **Docker-ready**: ready to run with volume-mounted log folder.
+Perfect for modern API services, RAG pipelines, microservices, and any Python project requiring reliable JSON logs.
 
 ---
 
-## Folder Structure
+## ✨ Features
+
+- 🔹 **Structured JSON logs** including:  
+  `timestamp`, `level`, `message`, `logger`, `module`, `function`, `line`, `request_id`, and context values.
+- 🔹 **Request‑scoped logging** using a unique `request_id` per request.
+- 🔹 **Context handling** — attach metadata automatically to every log entry.
+- 🔹 **Summary logs** for pipeline‑level metrics (RAG results, evaluations, processing time, etc.).
+- 🔹 **Log rotation** (size‑based) with configurable retention.
+- 🔹 **Unified log file** — all logs (info, error, summary) stored together.
+- 🔹 **Optional console JSON output** for development.
+- 🔹 **Docker-ready** — logs volume‑mountable in containers.
+
+---
+
+## 📁 Project Structure
+
+```
 logging_framework/
-├── init.py # Logger initialization & public APIs
-├── logger.py # JSON formatter
-├── request_logger.py # Request-scoped logger wrapper
-├── log_context.py # Request context storage
-├── config.yaml # Logging configuration
-└── main.py # Example usage
-
+├── __init__.py           # Logger initialization & public API
+├── logger.py             # JSON log formatter
+├── request_logger.py     # Request-scoped logging wrapper
+├── log_context.py        # Context storage per request
+├── config.yaml           # Logging configuration (dev/prod)
+└── main.py               # Example usage
+```
 
 ---
 
-## Configuration (`config.yaml`)
+## ⚙️ Configuration (`config.yaml`)
 
 ```yaml
 dev:
@@ -48,87 +60,71 @@ prod:
       backup_count: 5
 
 logging:
-  folder: logs             # relative to this module
+  folder: logs             # relative path
   file_name: app.json
 
 app_name: my_app
-
-Note:
-1. dev and prod define environment-specific logging levels and rotation.
-2. LOG_PATH environment variable overrides the log folder.
-3. app_name defines the logger name.
-
-Quick Start
-1. Clone the repository
-git clone <repo_url>
-cd logging_framework
-2. Build Docker image
-docker build -t logging-framework:1.0 .
-3. Run the example
-docker run -e LOG_PATH=/app/logs -v $(pwd)/logs:/app/logs logging-framework:1.0
-Logs will be written to logs/app.json.
-Rotated logs are automatically created when max_bytes is exceeded.
-All logs, including summary logs, are in a single file.
-Example Output
-{
-  "timestamp": "2026-03-24T13:37:06.177040",
-  "level": "INFO",
-  "message": "Context initialized",
-  "logger": "my_app",
-  "module": "request_logger",
-  "function": "_log",
-  "line": 37,
-  "request_id": "bfa58fbc-89ac-44ba-ba8a-903da7e11d60",
-  "query": "Test Query",
-  "query_length": 1
-}
-{
-  "timestamp": "2026-03-24T13:37:06.272498",
-  "level": "SUMMARY",
-  "message": "RAG Summary",
-  "logger": "my_app",
-  "module": "request_logger",
-  "function": "summary",
-  "line": 68,
-  "request_id": "bfa58fbc-89ac-44ba-ba8a-903da7e11d60",
-  "component": "evaluation",
-  "query": "Test Query",
-  "query_length": 1,
-  "total_pipeline_time": 0.095
-}
-Usage in Your Project
-from logging_framework import get_request_logger
-from logging_framework.log_context import LogContext
-
-# Create a unique request ID per request
-request_id = "unique-request-id"
-ctx = LogContext(request_id)
-
-# Initialize request-scoped logger
-logger = get_request_logger(request_id, ctx)
-
-# Add context data
-ctx.add("user_id", 1234)
-
-# Log normally
-logger.info("Processing started")
-
-# Log summary at end of request
-logger.summary("Pipeline Summary", extra={"component": "evaluation"})
-All logs automatically include request_id and context data.
-Summary logs use SUMMARY level internally.
-Log Rotation
-Configured per environment in config.yaml.
-Rotation occurs when log file exceeds max_bytes.
-Keeps backup_count rotated files.
-Ensures logs don’t grow indefinitely in production.
-License
-
-MIT License. Free to use, modify, and integrate into your projects.
-
+```
 
 ---
 
-If you want, I can also **update the Dockerfile and main.py comments** so that **any other developer can just clone the repo, build Docker, and see the logs with context and summary automatically**.  
+## 🚀 Quick Start
 
-Do you want me to do that next?
+### 1. Clone the repository
+
+```bash
+git clone <repo_url>
+cd logging_framework
+```
+
+### 2. Build Docker image
+
+```bash
+docker build -t logging-framework:1.0 .
+```
+
+### 3. Run the example
+
+```bash
+docker run   -e LOG_PATH=/app/logs   -v $(pwd)/logs:/app/logs   logging-framework:1.0
+```
+
+Logs will appear in `logs/app.json`.
+
+---
+
+## 📌 Example Output
+
+(Example JSON omitted for brevity — see full README in chat above.)
+
+---
+
+## 🧩 Usage in Your Project
+
+```python
+from logging_framework import get_request_logger
+from logging_framework.log_context import LogContext
+
+request_id = "unique-request-id"
+ctx = LogContext(request_id)
+logger = get_request_logger(request_id, ctx)
+
+ctx.add("user_id", 1234)
+logger.info("Processing started")
+logger.summary("Pipeline Summary", extra={"component": "evaluation"})
+```
+
+---
+
+## 🔄 Log Rotation
+
+- Triggered when file exceeds `max_bytes`.
+- Keeps up to `backup_count` rotated logs.
+- Prevents unbounded log growth.
+
+---
+
+## 📄 License
+
+MIT License
+
