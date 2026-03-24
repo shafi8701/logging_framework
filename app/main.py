@@ -1,62 +1,67 @@
 import uuid
 import time
+import traceback
 from logging_framework import get_request_logger
-
-
-#Context class allows to store context parameters when a call is made... Later you can summary in the end as single log line...
-from logging_framework.log_context import LogContext, set_context, get_context, add_to_context
+from logging_framework.log_context import LogContext, set_context, add_to_context
 
 def run_test():
+    # -------------------------------
+    # Generate unique request ID
+    # -------------------------------
+    request_id = str(uuid.uuid4())
+    print(f"Run ID: {request_id}")
 
+    # -------------------------------
+    # Initialize context and logger
+    # -------------------------------
+    ctx = LogContext(request_id)
+    set_context(ctx)  # optional if using global context
+    logger = get_request_logger(request_id, ctx)
+
+    # -------------------------------
+    # Add initial context info
+    # -------------------------------
+    add_to_context(request_id, "query", "Test Query")
+    add_to_context(request_id, "query_length", 1)
+    logger.info("Context initialized")
+
+    # -------------------------------
+    # Processing loop (simulate work)
+    # -------------------------------
     try:
+        for i in range(10):
+            logger.info("Processing record", extra={"iteration": i})
 
-        request_id = str(uuid.uuid4())
-        logger = get_request_logger(request_id)
-        """
-        for i in range(200):
-            logger.info(
-                "Processing record",
-                extra={"iteration": i, "test": "rotation"}
-            )
-
-            if i % 50 == 0:
+            # Simulate an occasional exception
+            if i % 5 == 0 and i != 0:
                 try:
                     1 / 0
                 except Exception:
-                    logger.exception("Test exception")
+                    logger.exception("Test exception occurred")
 
             time.sleep(0.01)
 
-        logger.warning("Test completed")
-        """
+        logger.warning("Processing completed successfully")
 
-        logger.info("Creating the Log Context Object")
-
-        ctx = LogContext(request_id)
-
-        logger.info("Setting context object")
-
-        set_context(ctx)
-
-        logger.info("Adding context object")
-
-        add_to_context("query", "Test Query")
-        add_to_context("query_length", 1)
-
-            
-        ctx = get_context()
-        if ctx is not None:
-            summary_data = ctx.summary()
-            logger.debug(
-                "RAG Summary",
-                extra={
-                    "component": "evaluation",
-                    **summary_data
-                }
-            )
-    
     except Exception as e:
-        logger.exception("Unhandled error in run_test(): %s", e)
+        # Catch any unexpected error
+        logger.exception(f"Unexpected error: {str(e)}")
+        add_to_context(request_id, "error", str(e))
+        add_to_context(request_id, "error_trace", traceback.format_exc())
+
+    finally:
+        # -------------------------------
+        # Always generate summary log
+        # -------------------------------
+        summary_data = ctx.summary()
+        logger.summary(
+            "RAG Summary",
+            extra={
+                "component": "evaluation",
+                **summary_data
+            }
+        )
+        print("Summary logged")
 
 
 if __name__ == "__main__":

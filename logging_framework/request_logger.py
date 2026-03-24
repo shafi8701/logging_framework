@@ -1,92 +1,74 @@
+import logging
+from .log_context import LogContext
+
+# -------------------------------
+# Custom SUMMARY level
+# -------------------------------
+SUMMARY_LEVEL = 25
+logging.addLevelName(SUMMARY_LEVEL, "SUMMARY")
+
+
 class RequestLogger:
     """
     Request-scoped logger wrapper.
     - Injects request_id into all logs
-    - Safely merges extra fields
-    - Supports standard logging kwargs (exc_info, stack_info, etc.)
+    - Supports a separate summary method
     """
 
-    def __init__(self, base_logger, request_id: str, trace_id: str = None):
+    def __init__(self, base_logger: logging.Logger, request_id: str, context: LogContext = None):
         self.logger = base_logger
         self.request_id = request_id
-        self.trace_id = trace_id  # optional (future: distributed tracing)
+        self.context = context
 
-    def _log(self, level: str, message: str, **kwargs):
+    def _log(self, level: str, message: str, extra: dict = None, **kwargs):
         """
-        Centralized safe logging handler.
+        Centralized logging method.
+        Automatically injects request_id and context data.
         """
+        user_extra = extra.copy() if extra else {}
+        user_extra["request_id"] = self.request_id
 
-        # -------------------------------
-        # 🔒 Extract and validate extra
-        # -------------------------------
-        user_extra = kwargs.pop("extra", {})
+        # Inject context data if available
+        if self.context:
+            user_extra.update(self.context.data)
 
-        if user_extra is None:
-            user_extra = {}
-
-        if not isinstance(user_extra, dict):
-            raise ValueError("extra must be a dictionary")
-
-        # -------------------------------
-        # 🚫 Prevent override of core fields
-        # -------------------------------
-        protected_keys = {"request_id", "trace_id"}
-
-        for key in protected_keys:
-            if key in user_extra:
-                user_extra.pop(key)
-
-        # -------------------------------
-        # 🔗 Merge system + user fields
-        # -------------------------------
-        merged_extra = {
-            **user_extra,
-            "request_id": self.request_id
-        }
-
-        if self.trace_id:
-            merged_extra["trace_id"] = self.trace_id
-
-        # -------------------------------
-        # 📣 Get logging method safely
-        # -------------------------------
-        log_method = getattr(self.logger, level, None)
-
-        if not log_method:
-            raise ValueError(f"Invalid log level: {level}")
-
-        # -------------------------------
-        # 🚀 Emit log
-        # -------------------------------
-        log_method(
-            message,
-            extra=merged_extra,
-            stacklevel=2,
-            **kwargs
-        )
+        # Get the logging method dynamically
+        log_method = getattr(self.logger, level)
+        log_method(message, extra=user_extra, **kwargs)
 
     # -------------------------------
-    # 🎯 Public methods
+    # Standard logging methods
     # -------------------------------
-    def debug(self, message: str, **kwargs):
-        self._log("debug", message, **kwargs)
+    def debug(self, message: str, extra=None, **kwargs):
+        self._log("debug", message, extra=extra, **kwargs)
 
-    def info(self, message: str, **kwargs):
-        self._log("info", message, **kwargs)
+    def info(self, message: str, extra=None, **kwargs):
+        self._log("info", message, extra=extra, **kwargs)
 
-    def warning(self, message: str, **kwargs):
-        self._log("warning", message, **kwargs)
+    def warning(self, message: str, extra=None, **kwargs):
+        self._log("warning", message, extra=extra, **kwargs)
 
-    def error(self, message: str, **kwargs):
-        self._log("error", message, **kwargs)
+    def error(self, message: str, extra=None, **kwargs):
+        self._log("error", message, extra=extra, **kwargs)
 
-    def critical(self, message: str, **kwargs):
-        self._log("critical", message, **kwargs)
+    def critical(self, message: str, extra=None, **kwargs):
+        self._log("critical", message, extra=extra, **kwargs)
 
-    def exception(self, message: str, **kwargs):
-        """
-        Convenience method for exception logging.
-        Automatically includes stack trace.
-        """
+    def exception(self, message: str, extra=None, **kwargs):
         kwargs["exc_info"] = True
-        self._log("error", message, **kwargs)
+        self._log("error", message, extra=extra, **kwargs)
+
+    # -------------------------------
+    # Special SUMMARY log method
+    # -------------------------------
+    def summary(self, message: str, extra=None, **kwargs):
+        """
+        Logs at custom SUMMARY level.
+        Will appear in the single log file alongside other logs.
+        """
+        user_extra = extra.copy() if extra else {}
+        user_extra["request_id"] = self.request_id
+        if self.context:
+            user_extra.update(self.context.data)
+
+        self.logger.log(SUMMARY_LEVEL, message, extra=user_extra, **kwargs)
