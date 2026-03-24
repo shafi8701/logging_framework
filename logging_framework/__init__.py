@@ -7,7 +7,6 @@ from logging.handlers import RotatingFileHandler
 
 from .logger import JsonFormatter
 from .request_logger import RequestLogger
-from .log_context import LogContext
 
 # -------------------------------
 # Base directory
@@ -18,7 +17,6 @@ BASE_DIR = Path(__file__).resolve().parent
 # Load Config
 # -------------------------------
 CONFIG_PATH = BASE_DIR / "config.yaml"
-
 with open(CONFIG_PATH, "r") as f:
     config = yaml.safe_load(f)
 
@@ -37,7 +35,6 @@ backup_count = rotation_config.get("backup_count", 5)
 # -------------------------------
 log_folder = Path(os.getenv("LOG_PATH", BASE_DIR / config["logging"]["folder"]))
 log_folder.mkdir(parents=True, exist_ok=True)
-
 log_file = log_folder / config["logging"]["file_name"]
 
 # -------------------------------
@@ -56,7 +53,7 @@ file_handler = RotatingFileHandler(
 file_handler.setFormatter(json_formatter)
 
 # -------------------------------
-# Console handler (optional)
+# Console handler
 # -------------------------------
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(json_formatter)
@@ -76,5 +73,9 @@ _logger.propagate = False
 def get_logger() -> logging.Logger:
     return _logger
 
-def get_request_logger(request_id: str, context: LogContext = None) -> RequestLogger:
-    return RequestLogger(_logger, request_id, context)
+def get_request_logger() -> RequestLogger:
+    """
+    Returns a RequestLogger instance.
+    Automatically reads request_id from current LogContext.
+    """
+    return RequestLogger(_logger)

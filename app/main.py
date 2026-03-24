@@ -1,3 +1,4 @@
+# main.py
 import uuid
 import time
 import traceback
@@ -7,6 +8,7 @@ from logging_framework import get_request_logger
 from logging_framework.log_context import LogContext, set_context, add_to_context
 
 def run_test():
+<<<<<<< HEAD
     
     #This is unique for each user request...
     #Request ID must be passed to downstream flows...
@@ -22,6 +24,17 @@ def run_test():
     # Add context
     add_to_context(request_id, "query", "Test Query")
     add_to_context(request_id, "query_length", 1)
+=======
+    # Initialize context for this request
+    ctx = LogContext()
+    ctx.set_request_id(str(uuid.uuid4()))
+    set_context(ctx)
+
+    logger = get_request_logger()  # no args needed
+
+    add_to_context("query", "Test Query")
+    add_to_context("query_length", 1)
+>>>>>>> 2fa9051 (Version 1)
 
     try:
         for i in range(10):
@@ -37,10 +50,11 @@ def run_test():
 
     except Exception as e:
         logger.exception(f"Unexpected error: {str(e)}")
-        add_to_context(request_id, "error", str(e))
-        add_to_context(request_id, "error_trace", traceback.format_exc())
+        add_to_context("error", str(e))
+        add_to_context("error_trace", traceback.format_exc())
 
     finally:
+<<<<<<< HEAD
         summary_data = ctx.summary()
         logger.summary(
             "RAG Summary",
@@ -49,6 +63,10 @@ def run_test():
                 **summary_data
             }
         )
+=======
+        logger.summary("RAG Summary", extra={"component": "evaluation"})
+        print("Summary logged")
+>>>>>>> 2fa9051 (Version 1)
 
 if __name__ == "__main__":
     run_test()

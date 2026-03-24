@@ -1,26 +1,22 @@
 # logging_framework/log_context.py
 import time
+import contextvars
 from typing import Dict, Any
+
+# Thread/async-safe context
+_current_context: contextvars.ContextVar["LogContext"] = contextvars.ContextVar("current_log_context", default=None)
 
 class LogContext:
     """
     Stores request-scoped context data for logs and summary.
     """
-
-    _contexts: Dict[str, "LogContext"] = {}
-
-    @classmethod
-    def get_context(cls, request_id: str) -> "LogContext":
-        return cls._contexts.get(request_id)
-
-    @classmethod
-    def set_context(cls, request_id: str, ctx: "LogContext"):
-        cls._contexts[request_id] = ctx
-
-    def __init__(self, request_id: str):
-        self.request_id = request_id
+    def __init__(self):
+        self.request_id = str(time.time())  # default, overridden per request
         self.start_time = time.time()
         self.data: Dict[str, Any] = {}
+
+    def set_request_id(self, request_id: str):
+        self.request_id = request_id
 
     def add(self, key: str, value: Any):
         self.data[key] = value
@@ -32,19 +28,21 @@ class LogContext:
             **self.data,
         }
 
-
 # -------------------------------
-# Optional helpers for convenience
+# Helpers for contextvars
 # -------------------------------
 
-def set_context(request_id: str, ctx: LogContext):
-    LogContext.set_context(request_id, ctx)
+def set_context(ctx: LogContext):
+    """Set current context."""
+    _current_context.set(ctx)
 
-def get_context(request_id: str) -> LogContext:
-    return LogContext.get_context(request_id)
+def get_context() -> LogContext:
+    """Get current context. Returns None if not set."""
+    return _current_context.get()
 
-def add_to_context(request_id: str, key: str, value: Any):
-    ctx = LogContext.get_context(request_id)
+def add_to_context(key: str, value: Any):
+    """Add key-value to current context."""
+    ctx = get_context()
     if ctx is None:
-        raise RuntimeError(f"Context for request_id={request_id} not initialized")
+        raise RuntimeError("LogContext not initialized for current request")
     ctx.add(key, value)
