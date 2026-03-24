@@ -1,75 +1,80 @@
+# logging_framework/__init__.py
 import logging
 import os
+import yaml
 from pathlib import Path
-from queue import Queue
-from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
+from logging.handlers import RotatingFileHandler
+
 from .logger import JsonFormatter
 from .request_logger import RequestLogger
+from .log_context import LogContext
 
 # -------------------------------
-# Paths & Environment
+# Base directory
 # -------------------------------
 BASE_DIR = Path(__file__).resolve().parent
-log_folder = Path(os.getenv("LOG_PATH", BASE_DIR / "logs"))
-log_folder.mkdir(parents=True, exist_ok=True)
-log_file = log_folder / "app.log"
 
 # -------------------------------
-# Custom SUMMARY level
+# Load Config
 # -------------------------------
-SUMMARY_LEVEL = 25
-logging.addLevelName(SUMMARY_LEVEL, "SUMMARY")
+CONFIG_PATH = BASE_DIR / "config.yaml"
+
+with open(CONFIG_PATH, "r") as f:
+    config = yaml.safe_load(f)
+
+environment = os.getenv("ENV", "dev")
+env_config = config.get(environment, {}).get("logging", {})
+
+log_level_str = env_config.get("level", "INFO")
+log_level = getattr(logging, log_level_str.upper(), logging.INFO)
+
+rotation_config = env_config.get("rotation", {})
+max_bytes = rotation_config.get("max_bytes", 10 * 1024 * 1024)
+backup_count = rotation_config.get("backup_count", 5)
+
+# -------------------------------
+# Log folder
+# -------------------------------
+log_folder = Path(os.getenv("LOG_PATH", BASE_DIR / config["logging"]["folder"]))
+log_folder.mkdir(parents=True, exist_ok=True)
+
+log_file = log_folder / config["logging"]["file_name"]
 
 # -------------------------------
 # Formatter
 # -------------------------------
-formatter = JsonFormatter()
+json_formatter = JsonFormatter()
 
 # -------------------------------
-# File handler
+# File handler with rotation
 # -------------------------------
 file_handler = RotatingFileHandler(
     log_file,
-    maxBytes=10 * 1024 * 1024,
-    backupCount=5
+    maxBytes=max_bytes,
+    backupCount=backup_count,
 )
-file_handler.setFormatter(formatter)
-file_handler.setLevel(logging.INFO)  # everything INFO+ will go here
+file_handler.setFormatter(json_formatter)
 
 # -------------------------------
 # Console handler (optional)
 # -------------------------------
 console_handler = logging.StreamHandler()
-console_handler.setFormatter(formatter)
-console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(json_formatter)
 
 # -------------------------------
-# Async Logging
+# Logger setup
 # -------------------------------
-log_queue = Queue(-1)
-queue_handler = QueueHandler(log_queue)
-queue_listener = QueueListener(
-    log_queue,
-    file_handler,
-    console_handler,
-    respect_handler_level=True
-)
-queue_listener.start()
+_logger = logging.getLogger(config.get("app_name", "app"))
+_logger.setLevel(log_level)
+_logger.addHandler(file_handler)
+_logger.addHandler(console_handler)
+_logger.propagate = False
 
 # -------------------------------
-# Logger singleton
+# Public APIs
 # -------------------------------
-_logger = logging.getLogger("my_app")
-if not _logger.handlers:
-    _logger.setLevel(logging.INFO)
-    _logger.addHandler(queue_handler)
-    _logger.propagate = False
-
-# -------------------------------
-# Public API
-# -------------------------------
-def get_logger():
+def get_logger() -> logging.Logger:
     return _logger
 
-def get_request_logger(request_id: str, context=None) -> RequestLogger:
-    return RequestLogger(_logger, request_id, context=context)
+def get_request_logger(request_id: str, context: LogContext = None) -> RequestLogger:
+    return RequestLogger(_logger, request_id, context)

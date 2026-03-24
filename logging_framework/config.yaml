@@ -17,6 +17,5 @@ prod:
 logging:
   folder: logs        # relative to this module
   file_name: app.json
-  file_name_summary: summary.json
 
 app_name: my_app
