@@ -1,0 +1,14 @@
+[project]
+name = "logging-framework"
+version = "0.1.0"
+description = "Reusable async logging framework"
+authors = [{ name = "Mohammed Shafi Mansuri" }]
+dependencies = ["PyYAML"]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# ✅ Let setuptools auto-detect correctly
+[tool.setuptools.packages.find]
+where = ["."]
