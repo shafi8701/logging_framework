@@ -124,7 +124,5 @@ logger.summary("Pipeline Summary", extra={"component": "evaluation"})
 
 ---
 
-## 📄 License
-
 MIT License
 
