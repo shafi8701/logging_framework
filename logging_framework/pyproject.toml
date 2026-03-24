@@ -1,7 +1,7 @@
 [project]
 name = "logging-framework"
 version = "0.1.0"
-description = "Reusable async logging framework"
+description = "Reusable python logging framework"
 authors = [{ name = "Mohammed Shafi Mansuri" }]
 dependencies = ["PyYAML"]
 
