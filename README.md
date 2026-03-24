@@ -123,6 +123,3 @@ logger.summary("Pipeline Summary", extra={"component": "evaluation"})
 - Prevents unbounded log growth.
 
 ---
-
-MIT License
-
